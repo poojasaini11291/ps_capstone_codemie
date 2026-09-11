@@ -1,6 +1,6 @@
 # ✨ KeyCraft - Password Generator & Strength Analyzer
 
-A modern, cryptographically secure desktop and command-line password generator and real-time strength analyzer built with **Python** and **CustomTkinter** for **Windows 11**.
+A  modern, cryptographically secure desktop and command-line password generator and real-time strength analyzer built with **Python** and **CustomTkinter** for **Windows 11**.
 
 ---
 
