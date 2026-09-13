@@ -44,6 +44,12 @@ A  modern, cryptographically secure desktop and command-line password generator 
 - **⏳ Offline Crack Time Estimation**: Estimates time needed for a 100 Giga-guess/sec GPU cluster to brute-force the password.
 - **Security Checklist & Suggestions**: Live badges indicating uppercase, lowercase, numbers, symbols, length (12+ chars), and pattern safety with actionable tips.
 
+### 4. 🔐 Encrypted Local Vault
+- **Master-Password Protected**: A single master password (min. 8 characters) protects the entire vault. The master password itself is never stored — only a PBKDF2-derived-key verifier.
+- **Strong Encryption**: Each saved password is encrypted at rest with **Fernet** (AES-128-CBC + HMAC), using a key derived via **PBKDF2-HMAC-SHA256** (200,000 iterations) from the master password and a random per-vault salt.
+- **Local SQLite Storage**: Entries (label, optional username, encrypted password, timestamps) are stored in a local SQLite database at `app/data/vault.db` — no cloud sync, no network calls.
+- **CRUD from GUI or CLI**: Save the currently generated password under a label (e.g. "Gmail", "Bank"), list saved entries, reveal/copy a password on demand, or delete an entry.
+
 ---
 
 ## 🚀 Getting Started
@@ -52,14 +58,14 @@ A  modern, cryptographically secure desktop and command-line password generator 
 
 Ensure Python 3.10+ is installed:
 ```powershell
-pip install -r requirements.txt
+pip install -r app/requirements.txt
 ```
 
 ### Running the GUI Application
 
 Simply run:
 ```powershell
-python main.py
+python app/main.py
 ```
 
 ### Keyboard Shortcuts
@@ -74,29 +80,46 @@ KeyCraft includes a CLI for scripting, terminals, or pipelines:
 
 ```powershell
 # Generate standard 16-character strong password
-python main.py
+python app/main.py
 
 # Generate 24-character password without ambiguous characters
-python main.py --length 24 --exclude-ambiguous
+python app/main.py --length 24 --exclude-ambiguous
 
 # Generate a 5-word memorable passphrase with dots
-python main.py --passphrase --words 5 --separator "."
+python app/main.py --passphrase --words 5 --separator "."
 
 # Generate a 6-digit PIN
-python main.py --pin --length 6
+python app/main.py --pin --length 6
 
 # Generate a batch of 10 passwords
-python main.py --length 20 --batch 10
+python app/main.py --length 20 --batch 10
 
 # Generate and copy directly to clipboard
-python main.py --length 18 --copy
+python app/main.py --length 18 --copy
 
 # Check the strength of any password
-python main.py --check "P@ssw0rd123!"
+python app/main.py --check "P@ssw0rd123!"
 
 # Output machine-readable JSON
-python main.py --length 20 --json
+python app/main.py --length 20 --json
+
+# Initialize a new encrypted vault (prompts for a master password)
+python app/main.py --vault-init
+
+# Generate a password and save it into the vault under a label
+python app/main.py --length 20 --vault-add "Gmail" --username "alice@example.com"
+
+# List saved vault entries (metadata only — passwords stay encrypted)
+python app/main.py --vault-list
+
+# Decrypt and print one saved entry's password by id
+python app/main.py --vault-show 1
+
+# Delete a saved entry by id
+python app/main.py --vault-delete 1
 ```
+
+> All `--vault-*` commands prompt for the master password interactively (via `getpass`) — it is never passed as a command-line argument.
 
 ---
 
@@ -104,6 +127,7 @@ python main.py --length 20 --json
 
 To run the automated test suite:
 ```powershell
+cd app
 python -m unittest discover -s tests
 ```
 
@@ -113,30 +137,41 @@ python -m unittest discover -s tests
 
 ```
 CodeMie/
-├── main.py                     # Application entry point (GUI / CLI dispatcher)
-├── requirements.txt            # Project dependencies
 ├── README.md                   # Project documentation
-├── core/
-│   ├── __init__.py
-│   ├── generator.py            # CSPRNG generator, passphrase & PIN logic
-│   ├── strength_checker.py     # Shannon entropy, pattern checks & crack estimator
-│   ├── wordlist.py             # Curated EFF Diceware wordlist
-│   └── clipboard.py            # Clipboard manager & auto-clear scheduler
-├── gui/
-│   ├── __init__.py
-│   ├── app_window.py           # Main CustomTkinter UI window & tabs
-│   └── components/
+├── app/                        # KeyCraft application code
+│   ├── main.py                  # Application entry point (GUI / CLI dispatcher)
+│   ├── requirements.txt         # Project dependencies
+│   ├── db/
+│   │   └── schema.sql            # SQLite DDL for the encrypted vault
+│   ├── data/                    # Local vault.db lives here (gitignored)
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── generator.py          # CSPRNG generator, passphrase & PIN logic
+│   │   ├── strength_checker.py   # Shannon entropy, pattern checks & crack estimator
+│   │   ├── wordlist.py           # Curated EFF Diceware wordlist
+│   │   ├── clipboard.py          # Clipboard manager & auto-clear scheduler
+│   │   └── vault.py              # Encrypted vault: init/unlock/add/list/get/delete
+│   ├── gui/
+│   │   ├── __init__.py
+│   │   ├── app_window.py         # Main CustomTkinter UI window & tabs
+│   │   └── components/
+│   │       ├── __init__.py
+│   │       ├── password_display.py # Large password box & copy controls
+│   │       ├── strength_meter.py   # Visual progress bar & scorecards
+│   │       ├── options_panel.py    # Sliders, toggles, mode tabs
+│   │       ├── history_drawer.py   # Session history & batch modal
+│   │       └── vault_panel.py      # Vault tab: unlock/create, entry list, save/reveal/delete
+│   ├── cli/
+│   │   ├── __init__.py
+│   │   └── cli_runner.py         # CLI argument parsing & runner
+│   └── tests/
 │       ├── __init__.py
-│       ├── password_display.py # Large password box & copy controls
-│       ├── strength_meter.py   # Visual progress bar & scorecards
-│       ├── options_panel.py    # Sliders, toggles, mode tabs
-│       └── history_drawer.py   # Session history & batch modal
-├── cli/
-│   ├── __init__.py
-│   └── cli_runner.py           # CLI argument parsing & runner
-└── tests/
-    ├── __init__.py
-    ├── test_generator.py       # Generator tests
-    └── test_strength.py        # Strength analyzer tests
+│       ├── test_generator.py     # Generator tests
+│       ├── test_strength.py      # Strength analyzer tests
+│       └── test_vault.py         # Vault encryption & CRUD tests
+├── .codemie/                    # Capstone SDLC deliverables & persona assistant defs
+│   ├── skills/                   # Requirement/Design/Code/Review/Test/Deploy/Docs assistants
+│   └── deliverables/              # Analysis, Jira, plan, design, code review, testing, deployment, docs
+└── reference_files/             # Original capstone project statement & reference docs
 ```
 
