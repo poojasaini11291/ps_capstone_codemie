@@ -95,7 +95,14 @@ python app/main.py --pin --length 6
 python app/main.py --length 20 --batch 10
 
 # Generate and copy directly to clipboard
+# (clipboard auto-clears after 15s by default — see options below)
 python app/main.py --length 18 --copy
+
+# Copy, but auto-clear the clipboard after 30s instead of the default
+python app/main.py --length 18 --copy --clipboard-autoclear-seconds 30
+
+# Copy without ever auto-clearing the clipboard
+python app/main.py --length 18 --copy --no-clipboard-autoclear
 
 # Check the strength of any password
 python app/main.py --check "P@ssw0rd123!"
@@ -120,6 +127,14 @@ python app/main.py --vault-delete 1
 ```
 
 > All `--vault-*` commands prompt for the master password interactively (via `getpass`) — it is never passed as a command-line argument.
+
+### 🕒 Clipboard Auto-Clear
+
+Any password copied to the clipboard (GUI copy buttons, or CLI `--copy`) is automatically cleared after **15 seconds** by default, to reduce the risk of accidental disclosure:
+
+- **GUI**: use the "Auto-clear clipboard" switch and delay dropdown in the header to toggle it or change the delay (5–60s) at runtime.
+- **CLI**: override the delay with `--clipboard-autoclear-seconds N`, or disable auto-clear entirely with `--no-clipboard-autoclear`. Run `python app/main.py --help` for full details.
+- If the clipboard cannot be accessed or cleared (e.g. no clipboard provider in a headless environment), the app logs a warning and shows a "Copy failed" / warning message instead of crashing.
 
 ---
 

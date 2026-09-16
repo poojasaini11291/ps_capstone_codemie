@@ -80,8 +80,15 @@ class VaultEntryRow(ctk.CTkFrame):
         password = self.revealed_password or self.on_reveal(self.entry.id)
         if not password:
             return
-        copy_with_autoclear(password, root_window=self.winfo_toplevel())
-        self.btn_copy.configure(text="✓ Copied!", fg_color=("#059669", "#238636"))
+        if copy_with_autoclear(password, root_window=self.winfo_toplevel()):
+            self.btn_copy.configure(text="✓ Copied!", fg_color=("#059669", "#238636"))
+        else:
+            self.btn_copy.configure(text="⚠ Failed", fg_color=("#dc2626", "#8b1a1a"))
+            messagebox.showwarning(
+                "Copy failed",
+                "Could not access the clipboard. Please try again or copy manually.",
+                parent=self.winfo_toplevel()
+            )
         self.after(1800, lambda: self.btn_copy.configure(text="📋 Copy", fg_color=("#2563eb", "#1f6feb")))
 
     def _handle_delete(self):

@@ -51,8 +51,8 @@ def copy_to_clipboard(text: str, root_window: Optional[tk.Tk] = None) -> bool:
         import pyperclip
         pyperclip.copy(text)
         return True
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("pyperclip copy failed, falling back to tkinter: %s", exc)
 
     try:
         if root_window:
@@ -68,7 +68,8 @@ def copy_to_clipboard(text: str, root_window: Optional[tk.Tk] = None) -> bool:
             temp_root.update()
             temp_root.destroy()
             return True
-    except Exception:
+    except Exception as exc:
+        logger.warning("Clipboard is unavailable; copy failed: %s", exc)
         return False
 
 
@@ -131,7 +132,7 @@ def schedule_auto_clear_clipboard(
                 if callback:
                     callback()
         except Exception as exc:
-            logger.debug("Clipboard auto-clear failed: %s", exc)
+            logger.warning("Clipboard auto-clear failed: %s", exc)
 
     timer = schedule_fn(delay_seconds, _fire)
 

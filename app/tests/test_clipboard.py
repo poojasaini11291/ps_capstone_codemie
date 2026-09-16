@@ -34,6 +34,15 @@ class TestCopyToClipboard(unittest.TestCase):
         self.assertTrue(result)
         mock_copy.assert_called_once_with("hunter2")
 
+    @patch("tkinter.Tk", side_effect=RuntimeError("no display"))
+    @patch("pyperclip.copy", side_effect=RuntimeError("no clipboard provider"))
+    def test_logs_warning_and_returns_false_when_all_backends_fail(self, mock_pyperclip, mock_tk):
+        with self.assertLogs(clipboard.logger.name, level="WARNING") as log_ctx:
+            result = clipboard.copy_to_clipboard("hunter2")
+
+        self.assertFalse(result)
+        self.assertTrue(any("Clipboard is unavailable" in msg for msg in log_ctx.output))
+
 
 class TestScheduleAutoClearClipboard(unittest.TestCase):
 
@@ -101,6 +110,22 @@ class TestScheduleAutoClearClipboard(unittest.TestCase):
         # The current (second) timer firing performs the clear.
         fired[1]()
         clipboard_set.assert_called_once_with("")
+
+    def test_logs_warning_when_clear_fails(self):
+        clipboard_get = Mock(side_effect=RuntimeError("clipboard provider gone"))
+        clipboard_set = Mock()
+
+        with self.assertLogs(clipboard.logger.name, level="WARNING") as log_ctx:
+            clipboard.schedule_auto_clear_clipboard(
+                "secret123",
+                delay_seconds=5,
+                clipboard_get=clipboard_get,
+                clipboard_set=clipboard_set,
+                schedule_fn=self._immediate_schedule,
+            )
+
+        clipboard_set.assert_not_called()
+        self.assertTrue(any("auto-clear failed" in msg for msg in log_ctx.output))
 
     def test_uses_configured_default_delay_when_not_specified(self):
         clipboard.set_autoclear_delay(42)

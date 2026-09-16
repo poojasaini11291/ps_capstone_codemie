@@ -112,17 +112,24 @@ class PasswordDisplay(ctk.CTkFrame):
             return
 
         success = copy_with_autoclear(self.current_password, root_window=self.winfo_toplevel())
+        if self.toast_job:
+            self.after_cancel(self.toast_job)
+
         if success:
             self.btn_copy.configure(
                 text="✓ Copied!",
                 fg_color=("#047857", "#2ea043")
             )
-            if self.toast_job:
-                self.after_cancel(self.toast_job)
             self.toast_job = self.after(2200, self._reset_copy_button)
 
             if self.on_copied:
                 self.on_copied(self.current_password)
+        else:
+            self.btn_copy.configure(
+                text="⚠ Copy failed",
+                fg_color=("#dc2626", "#8b1a1a")
+            )
+            self.toast_job = self.after(2200, self._reset_copy_button)
 
     def _reset_copy_button(self):
         self.btn_copy.configure(

@@ -16,7 +16,9 @@ from core.strength_checker import check_password_strength
 from core.clipboard import (
     copy_with_autoclear,
     set_autoclear_enabled,
+    get_autoclear_enabled,
     set_autoclear_delay,
+    get_autoclear_delay,
     DEFAULT_AUTOCLEAR_SECONDS,
 )
 from core.vault import (
@@ -219,8 +221,13 @@ def run_cli(args: Optional[List[str]] = None) -> int:
             passwords = [generate_password(cfg)]
 
     # Output results
+    copied = False
     if parsed.copy and passwords:
-        copy_with_autoclear(passwords[0])
+        copied = copy_with_autoclear(passwords[0])
+        if not copied:
+            print("Warning: could not copy to clipboard (clipboard unavailable).", file=sys.stderr)
+        elif get_autoclear_enabled() and get_autoclear_delay() > 0:
+            print(f"Clipboard will auto-clear in {get_autoclear_delay()}s.")
 
     if parsed.json:
         results = []
@@ -238,7 +245,7 @@ def run_cli(args: Optional[List[str]] = None) -> int:
     else:
         for pwd in passwords:
             rep = check_password_strength(pwd)
-            copy_tag = " (Copied to clipboard)" if parsed.copy and len(passwords) == 1 else ""
+            copy_tag = " (Copied to clipboard)" if copied and len(passwords) == 1 else ""
             print(f"{pwd:<32} [Score: {rep.score}/100 - {rep.level} - {rep.entropy_bits:.1f} bits]{copy_tag}")
 
     if parsed.vault_add and passwords:

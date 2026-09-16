@@ -92,8 +92,11 @@ class HistoryRow(ctk.CTkFrame):
         self.pass_entry.configure(state="readonly")
 
     def copy(self):
-        copy_with_autoclear(self.password, root_window=self.winfo_toplevel())
-        self.btn_copy.configure(text="✓ Copied!", fg_color=("#059669", "#238636"))
+        success = copy_with_autoclear(self.password, root_window=self.winfo_toplevel())
+        if success:
+            self.btn_copy.configure(text="✓ Copied!", fg_color=("#059669", "#238636"))
+        else:
+            self.btn_copy.configure(text="⚠ Failed", fg_color=("#dc2626", "#8b1a1a"))
         self.after(1800, lambda: self.btn_copy.configure(text="📋 Copy", fg_color=("#2563eb", "#1f6feb")))
 
 
@@ -259,9 +262,16 @@ class HistoryPanel(ctk.CTkFrame):
 
         def _copy_all():
             content = textbox.get("1.0", "end-1c")
-            if content:
-                copy_with_autoclear(content, root_window=dialog)
+            if not content:
+                return
+            if copy_with_autoclear(content, root_window=dialog):
                 messagebox.showinfo("Copied", "All passwords copied to clipboard!", parent=dialog)
+            else:
+                messagebox.showwarning(
+                    "Copy failed",
+                    "Could not access the clipboard. Please try again or copy manually.",
+                    parent=dialog
+                )
 
         def _export_txt():
             content = textbox.get("1.0", "end-1c")
