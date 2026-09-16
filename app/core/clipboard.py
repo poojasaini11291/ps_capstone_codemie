@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 # Default delay before an auto-scheduled clipboard clear fires. Used by both
 # the GUI and CLI unless the user configures a different value.
-DEFAULT_AUTOCLEAR_SECONDS = 15
+DEFAULT_AUTOCLEAR_SECONDS = 30
 
 _settings_lock = threading.Lock()
 _autoclear_enabled = True

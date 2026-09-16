@@ -95,11 +95,11 @@ python app/main.py --pin --length 6
 python app/main.py --length 20 --batch 10
 
 # Generate and copy directly to clipboard
-# (clipboard auto-clears after 15s by default — see options below)
+# (clipboard auto-clears after 30s by default — see options below)
 python app/main.py --length 18 --copy
 
-# Copy, but auto-clear the clipboard after 30s instead of the default
-python app/main.py --length 18 --copy --clipboard-autoclear-seconds 30
+# Copy, but auto-clear the clipboard after 60s instead of the default
+python app/main.py --length 18 --copy --clipboard-autoclear-seconds 60
 
 # Copy without ever auto-clearing the clipboard
 python app/main.py --length 18 --copy --no-clipboard-autoclear
@@ -130,7 +130,7 @@ python app/main.py --vault-delete 1
 
 ### 🕒 Clipboard Auto-Clear
 
-Any password copied to the clipboard (GUI copy buttons, or CLI `--copy`) is automatically cleared after **15 seconds** by default, to reduce the risk of accidental disclosure:
+Any password copied to the clipboard (GUI copy buttons, or CLI `--copy`) is automatically cleared after **30 seconds** by default, to reduce the risk of accidental disclosure:
 
 - **GUI**: use the "Auto-clear clipboard" switch and delay dropdown in the header to toggle it or change the delay (5–60s) at runtime.
 - **CLI**: override the delay with `--clipboard-autoclear-seconds N`, or disable auto-clear entirely with `--no-clipboard-autoclear`. Run `python app/main.py --help` for full details.
