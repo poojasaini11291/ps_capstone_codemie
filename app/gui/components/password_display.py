@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from typing import Callable, Optional
-from core.clipboard import copy_to_clipboard
+from core.clipboard import copy_with_autoclear
 
 
 class PasswordDisplay(ctk.CTkFrame):
@@ -111,7 +111,7 @@ class PasswordDisplay(ctk.CTkFrame):
         if not self.current_password:
             return
 
-        success = copy_to_clipboard(self.current_password, root_window=self.winfo_toplevel())
+        success = copy_with_autoclear(self.current_password, root_window=self.winfo_toplevel())
         if success:
             self.btn_copy.configure(
                 text="✓ Copied!",

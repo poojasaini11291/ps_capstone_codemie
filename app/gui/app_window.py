@@ -9,7 +9,12 @@ from core.generator import (
     generate_pin
 )
 from core.strength_checker import check_password_strength
-from core.clipboard import copy_to_clipboard
+from core.clipboard import (
+    set_autoclear_enabled,
+    get_autoclear_enabled,
+    set_autoclear_delay,
+    get_autoclear_delay,
+)
 from gui.components.password_display import PasswordDisplay
 from gui.components.strength_meter import StrengthMeter
 from gui.components.options_panel import OptionsPanel
@@ -94,6 +99,32 @@ class KeyCraftApp(ctk.CTk):
         )
         self.theme_switch.select()
         self.theme_switch.grid(row=0, column=1, sticky="e")
+
+        # Clipboard Auto-Clear Settings
+        clip_box = ctk.CTkFrame(header, fg_color="transparent")
+        clip_box.grid(row=0, column=2, sticky="e", padx=(12, 0))
+
+        self.autoclear_switch = ctk.CTkSwitch(
+            clip_box,
+            text="Auto-clear clipboard",
+            font=ctk.CTkFont(size=12),
+            command=self._on_autoclear_toggled
+        )
+        if get_autoclear_enabled():
+            self.autoclear_switch.select()
+        else:
+            self.autoclear_switch.deselect()
+        self.autoclear_switch.pack(side="left", padx=(0, 8))
+
+        self.autoclear_delay_var = ctk.StringVar(value=str(get_autoclear_delay()))
+        self.autoclear_delay_combo = ctk.CTkComboBox(
+            clip_box,
+            values=["5", "10", "15", "20", "30", "60"],
+            variable=self.autoclear_delay_var,
+            width=70,
+            command=self._on_autoclear_delay_changed
+        )
+        self.autoclear_delay_combo.pack(side="left")
 
         # -------------------------------------------------------------
         # 2. Main Navigation Tabs
@@ -294,4 +325,13 @@ class KeyCraftApp(ctk.CTk):
         else:
             ctk.set_appearance_mode("light")
             self.theme_switch.configure(text="Light Mode")
+
+    def _on_autoclear_toggled(self):
+        set_autoclear_enabled(bool(self.autoclear_switch.get()))
+
+    def _on_autoclear_delay_changed(self, value):
+        try:
+            set_autoclear_delay(int(value))
+        except ValueError:
+            pass
 

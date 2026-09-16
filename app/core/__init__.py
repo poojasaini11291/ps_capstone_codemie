@@ -15,7 +15,13 @@ from .strength_checker import (
 )
 from .clipboard import (
     copy_to_clipboard,
-    schedule_auto_clear_clipboard
+    schedule_auto_clear_clipboard,
+    copy_with_autoclear,
+    set_autoclear_enabled,
+    get_autoclear_enabled,
+    set_autoclear_delay,
+    get_autoclear_delay,
+    DEFAULT_AUTOCLEAR_SECONDS,
 )
 
 __all__ = [
@@ -32,5 +38,11 @@ __all__ = [
     "format_crack_time",
     "copy_to_clipboard",
     "schedule_auto_clear_clipboard",
+    "copy_with_autoclear",
+    "set_autoclear_enabled",
+    "get_autoclear_enabled",
+    "set_autoclear_delay",
+    "get_autoclear_delay",
+    "DEFAULT_AUTOCLEAR_SECONDS",
 ]
 

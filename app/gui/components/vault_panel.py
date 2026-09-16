@@ -12,7 +12,7 @@ from core.vault import (
     get_entry_password,
     delete_entry
 )
-from core.clipboard import copy_to_clipboard
+from core.clipboard import copy_with_autoclear
 
 
 class VaultEntryRow(ctk.CTkFrame):
@@ -80,7 +80,7 @@ class VaultEntryRow(ctk.CTkFrame):
         password = self.revealed_password or self.on_reveal(self.entry.id)
         if not password:
             return
-        copy_to_clipboard(password, root_window=self.winfo_toplevel())
+        copy_with_autoclear(password, root_window=self.winfo_toplevel())
         self.btn_copy.configure(text="✓ Copied!", fg_color=("#059669", "#238636"))
         self.after(1800, lambda: self.btn_copy.configure(text="📋 Copy", fg_color=("#2563eb", "#1f6feb")))
 

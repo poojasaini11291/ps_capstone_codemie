@@ -13,7 +13,12 @@ from core.generator import (
     generate_batch
 )
 from core.strength_checker import check_password_strength
-from core.clipboard import copy_to_clipboard
+from core.clipboard import (
+    copy_with_autoclear,
+    set_autoclear_enabled,
+    set_autoclear_delay,
+    DEFAULT_AUTOCLEAR_SECONDS,
+)
 from core.vault import (
     VaultError,
     init_vault,
@@ -57,6 +62,18 @@ def run_cli(args: Optional[List[str]] = None) -> int:
     # Utilities
     parser.add_argument("--copy", action="store_true", help="Copy the generated password to clipboard")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
+    parser.add_argument(
+        "--clipboard-autoclear-seconds",
+        type=int,
+        default=DEFAULT_AUTOCLEAR_SECONDS,
+        metavar="N",
+        help=f"Seconds before a --copy'd secret is cleared from the clipboard (default: {DEFAULT_AUTOCLEAR_SECONDS})"
+    )
+    parser.add_argument(
+        "--no-clipboard-autoclear",
+        action="store_true",
+        help="Disable automatic clipboard clearing after --copy"
+    )
 
     # Vault mode
     parser.add_argument("--vault-init", action="store_true", help="Create a new encrypted local vault")
@@ -67,6 +84,9 @@ def run_cli(args: Optional[List[str]] = None) -> int:
     parser.add_argument("--username", type=str, default=None, help="Optional username/account tag for --vault-add")
 
     parsed = parser.parse_args(args)
+
+    set_autoclear_enabled(not parsed.no_clipboard_autoclear)
+    set_autoclear_delay(parsed.clipboard_autoclear_seconds)
 
     # 0. Standalone Vault Management Actions
     if parsed.vault_init:
@@ -200,7 +220,7 @@ def run_cli(args: Optional[List[str]] = None) -> int:
 
     # Output results
     if parsed.copy and passwords:
-        copy_to_clipboard(passwords[0])
+        copy_with_autoclear(passwords[0])
 
     if parsed.json:
         results = []
