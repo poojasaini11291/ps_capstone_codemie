@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_AUTOCLEAR_SECONDS = 30
 
 _settings_lock = threading.Lock()
-_autoclear_enabled = True
+_autoclear_enabled = False  # KAN-13: default OFF
 _autoclear_delay_seconds = DEFAULT_AUTOCLEAR_SECONDS
 
 _timer_lock = threading.Lock()
@@ -142,13 +142,21 @@ def schedule_auto_clear_clipboard(
     return timer
 
 
-def copy_with_autoclear(text: str, root_window: Optional[tk.Tk] = None) -> bool:
+def copy_with_autoclear(
+    text: str,
+    root_window: Optional[tk.Tk] = None,
+    callback: Optional[Callable[[], None]] = None,
+) -> bool:
     """
     Copies text to the clipboard and, unless auto-clear is disabled or the
     delay is 0, schedules it to be cleared later. Single entry point shared
     by the GUI and CLI so both honor the same configuration.
+
+    callback, if provided, is forwarded to schedule_auto_clear_clipboard and
+    is called on the timer thread after the clipboard is cleared. GUI callers
+    should wrap it with widget.after(0, ...) for thread safety.
     """
     success = copy_to_clipboard(text, root_window=root_window)
     if success and get_autoclear_enabled() and get_autoclear_delay() > 0:
-        schedule_auto_clear_clipboard(text)
+        schedule_auto_clear_clipboard(text, callback=callback)
     return success

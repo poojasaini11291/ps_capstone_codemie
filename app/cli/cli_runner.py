@@ -65,16 +65,16 @@ def run_cli(args: Optional[List[str]] = None) -> int:
     parser.add_argument("--copy", action="store_true", help="Copy the generated password to clipboard")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     parser.add_argument(
+        "--clipboard-autoclear",
+        action="store_true",
+        help="Enable automatic clipboard clearing after --copy (default: off)"
+    )
+    parser.add_argument(
         "--clipboard-autoclear-seconds",
         type=int,
         default=DEFAULT_AUTOCLEAR_SECONDS,
         metavar="N",
-        help=f"Seconds before a --copy'd secret is cleared from the clipboard (default: {DEFAULT_AUTOCLEAR_SECONDS})"
-    )
-    parser.add_argument(
-        "--no-clipboard-autoclear",
-        action="store_true",
-        help="Disable automatic clipboard clearing after --copy"
+        help=f"Seconds before clipboard is cleared when --clipboard-autoclear is set (default: {DEFAULT_AUTOCLEAR_SECONDS})"
     )
 
     # Vault mode
@@ -87,7 +87,7 @@ def run_cli(args: Optional[List[str]] = None) -> int:
 
     parsed = parser.parse_args(args)
 
-    set_autoclear_enabled(not parsed.no_clipboard_autoclear)
+    set_autoclear_enabled(parsed.clipboard_autoclear)
     set_autoclear_delay(parsed.clipboard_autoclear_seconds)
 
     # 0. Standalone Vault Management Actions

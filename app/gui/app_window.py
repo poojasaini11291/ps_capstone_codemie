@@ -122,9 +122,25 @@ class KeyCraftApp(ctk.CTk):
             values=["5", "10", "15", "20", "30", "60"],
             variable=self.autoclear_delay_var,
             width=70,
-            command=self._on_autoclear_delay_changed
+            command=self._on_autoclear_delay_changed,
+            state="normal" if get_autoclear_enabled() else "disabled",
         )
         self.autoclear_delay_combo.pack(side="left")
+
+        ctk.CTkLabel(
+            clip_box,
+            text="s",
+            font=ctk.CTkFont(size=12),
+            text_color=("gray50", "#8b949e"),
+        ).pack(side="left", padx=(2, 4))
+
+        self._delay_error_label = ctk.CTkLabel(
+            clip_box,
+            text="",
+            font=ctk.CTkFont(size=11),
+            text_color=("#dc2626", "#f85149"),
+        )
+        self._delay_error_label.pack(side="left")
 
         # -------------------------------------------------------------
         # 2. Main Navigation Tabs
@@ -327,11 +343,17 @@ class KeyCraftApp(ctk.CTk):
             self.theme_switch.configure(text="Light Mode")
 
     def _on_autoclear_toggled(self):
-        set_autoclear_enabled(bool(self.autoclear_switch.get()))
+        enabled = bool(self.autoclear_switch.get())
+        set_autoclear_enabled(enabled)
+        self.autoclear_delay_combo.configure(state="normal" if enabled else "disabled")
 
     def _on_autoclear_delay_changed(self, value):
         try:
-            set_autoclear_delay(int(value))
+            n = int(value)
+            if n < 1:
+                raise ValueError
+            set_autoclear_delay(n)
+            self._delay_error_label.configure(text="")
         except ValueError:
-            pass
+            self._delay_error_label.configure(text="≥ 1s")
 

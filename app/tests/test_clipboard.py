@@ -158,7 +158,7 @@ class TestCopyWithAutoclear(unittest.TestCase):
 
         self.assertTrue(result)
         mock_copy.assert_called_once_with("s3cret", root_window=None)
-        mock_schedule.assert_called_once_with("s3cret")
+        mock_schedule.assert_called_once_with("s3cret", callback=None)
 
     @patch("core.clipboard.schedule_auto_clear_clipboard")
     @patch("core.clipboard.copy_to_clipboard", return_value=True)

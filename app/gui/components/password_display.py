@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from typing import Callable, Optional
-from core.clipboard import copy_with_autoclear
+from core.clipboard import copy_with_autoclear, get_autoclear_enabled, get_autoclear_delay
 
 
 class PasswordDisplay(ctk.CTkFrame):
@@ -82,6 +82,17 @@ class PasswordDisplay(ctk.CTkFrame):
         )
         self.btn_copy.pack(side="right", padx=(6, 0))
 
+        # Autoclear status label (row 2)
+        self._status_label = ctk.CTkLabel(
+            self,
+            text="",
+            font=ctk.CTkFont(size=11),
+            text_color=("gray40", "#8b949e"),
+            anchor="e",
+        )
+        self._status_label.grid(row=2, column=0, sticky="e", padx=14, pady=(0, 6))
+        self._status_clear_job = None
+
         # Copied Toast Badge (reverts after 2.5s)
         self.toast_job = None
 
@@ -111,7 +122,16 @@ class PasswordDisplay(ctk.CTkFrame):
         if not self.current_password:
             return
 
-        success = copy_with_autoclear(self.current_password, root_window=self.winfo_toplevel())
+        autoclear_active = get_autoclear_enabled() and get_autoclear_delay() > 0
+
+        def _on_cleared():
+            self.after(0, self._on_autoclear_fired)
+
+        success = copy_with_autoclear(
+            self.current_password,
+            root_window=self.winfo_toplevel(),
+            callback=_on_cleared if autoclear_active else None,
+        )
         if self.toast_job:
             self.after_cancel(self.toast_job)
 
@@ -122,6 +142,10 @@ class PasswordDisplay(ctk.CTkFrame):
             )
             self.toast_job = self.after(2200, self._reset_copy_button)
 
+            if autoclear_active:
+                delay = get_autoclear_delay()
+                self._set_status(f"Clipboard will clear in {delay}s")
+
             if self.on_copied:
                 self.on_copied(self.current_password)
         else:
@@ -130,6 +154,17 @@ class PasswordDisplay(ctk.CTkFrame):
                 fg_color=("#dc2626", "#8b1a1a")
             )
             self.toast_job = self.after(2200, self._reset_copy_button)
+
+    def _set_status(self, text: str, auto_clear_ms: int = 0):
+        if self._status_clear_job:
+            self.after_cancel(self._status_clear_job)
+            self._status_clear_job = None
+        self._status_label.configure(text=text)
+        if auto_clear_ms > 0:
+            self._status_clear_job = self.after(auto_clear_ms, lambda: self._set_status(""))
+
+    def _on_autoclear_fired(self):
+        self._set_status("Clipboard cleared", auto_clear_ms=3000)
 
     def _reset_copy_button(self):
         self.btn_copy.configure(
