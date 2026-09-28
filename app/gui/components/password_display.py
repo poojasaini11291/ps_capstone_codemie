@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from typing import Callable, Optional
-from core.clipboard import copy_to_clipboard
+from core.clipboard import copy_to_clipboard, schedule_auto_clear_clipboard
 
 
 class PasswordDisplay(ctk.CTkFrame):
@@ -11,13 +11,17 @@ class PasswordDisplay(ctk.CTkFrame):
         master,
         on_regenerate: Optional[Callable[[], None]] = None,
         on_copied: Optional[Callable[[str], None]] = None,
+        get_clipboard_settings: Optional[Callable[[], tuple]] = None,
         **kwargs
     ):
         super().__init__(master, corner_radius=14, fg_color=("gray90", "#161b22"), **kwargs)
         self.on_regenerate = on_regenerate
         self.on_copied = on_copied
+        self._get_clipboard_settings = get_clipboard_settings
         self.current_password = ""
         self.is_masked = False
+        self._auto_clear_enabled = True
+        self._auto_clear_delay = 30
 
         self.grid_columnconfigure(0, weight=1)
 
@@ -85,6 +89,10 @@ class PasswordDisplay(ctk.CTkFrame):
         # Copied Toast Badge (reverts after 2.5s)
         self.toast_job = None
 
+    def set_auto_clear_settings(self, enabled: bool, delay_seconds: int = 30) -> None:
+        self._auto_clear_enabled = enabled
+        self._auto_clear_delay = delay_seconds if delay_seconds > 0 else 30
+
     def set_password(self, password: str):
         self.current_password = password
         self._update_display_text()
@@ -120,6 +128,17 @@ class PasswordDisplay(ctk.CTkFrame):
             if self.toast_job:
                 self.after_cancel(self.toast_job)
             self.toast_job = self.after(2200, self._reset_copy_button)
+
+            enabled = self._auto_clear_enabled
+            delay = self._auto_clear_delay
+            if self._get_clipboard_settings is not None:
+                settings = self._get_clipboard_settings()
+                enabled, delay = settings[0], settings[1]
+            if enabled:
+                schedule_auto_clear_clipboard(
+                    self.current_password,
+                    delay_seconds=delay,
+                )
 
             if self.on_copied:
                 self.on_copied(self.current_password)

@@ -13,7 +13,7 @@ from core.generator import (
     generate_batch
 )
 from core.strength_checker import check_password_strength
-from core.clipboard import copy_to_clipboard
+from core.clipboard import copy_to_clipboard, schedule_auto_clear_clipboard
 from core.vault import (
     VaultError,
     init_vault,
@@ -56,6 +56,8 @@ def run_cli(args: Optional[List[str]] = None) -> int:
 
     # Utilities
     parser.add_argument("--copy", action="store_true", help="Copy the generated password to clipboard")
+    parser.add_argument("--auto-clear", action="store_true", help="Auto-clear clipboard after copying (requires --copy)")
+    parser.add_argument("--clear-delay", type=int, default=30, metavar="SECONDS", help="Seconds before auto-clearing clipboard (default: 30, requires --auto-clear)")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
 
     # Vault mode
@@ -201,6 +203,10 @@ def run_cli(args: Optional[List[str]] = None) -> int:
     # Output results
     if parsed.copy and passwords:
         copy_to_clipboard(passwords[0])
+        if parsed.auto_clear:
+            delay = parsed.clear_delay if parsed.clear_delay > 0 else 30
+            schedule_auto_clear_clipboard(passwords[0], delay_seconds=delay)
+            print(f"Clipboard will be cleared in {delay} seconds.", file=__import__("sys").stderr)
 
     if parsed.json:
         results = []

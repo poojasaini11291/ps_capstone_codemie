@@ -1,0 +1,12 @@
+{
+  "name": "keycraft-e2e",
+  "version": "1.0.0",
+  "description": "Playwright E2E / integration QA harness for KeyCraft (KAN-22 and regression)",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}
