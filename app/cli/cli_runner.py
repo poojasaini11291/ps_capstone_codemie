@@ -13,7 +13,7 @@ from core.generator import (
     generate_batch
 )
 from core.strength_checker import check_password_strength
-from core.clipboard import copy_to_clipboard
+from core.clipboard import copy_to_clipboard, schedule_auto_clear_clipboard
 from core.vault import (
     VaultError,
     init_vault,
@@ -56,6 +56,10 @@ def run_cli(args: Optional[List[str]] = None) -> int:
 
     # Utilities
     parser.add_argument("--copy", action="store_true", help="Copy the generated password to clipboard")
+    parser.add_argument("--auto-clear-clipboard", action="store_true", dest="auto_clear_clipboard",
+                        help="Automatically clear clipboard after N seconds (requires --copy)")
+    parser.add_argument("--auto-clear-seconds", type=int, default=30, dest="auto_clear_seconds",
+                        metavar="N", help="Seconds before clipboard is auto-cleared (default: 30, requires --auto-clear-clipboard)")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
 
     # Vault mode
@@ -198,9 +202,22 @@ def run_cli(args: Optional[List[str]] = None) -> int:
         else:
             passwords = [generate_password(cfg)]
 
+    # Validate --auto-clear-seconds before any output
+    if parsed.auto_clear_clipboard:
+        if parsed.auto_clear_seconds < 1:
+            print(
+                f"Error: --auto-clear-seconds must be a positive integer, got {parsed.auto_clear_seconds}",
+                file=sys.stderr
+            )
+            return 1
+
     # Output results
     if parsed.copy and passwords:
         copy_to_clipboard(passwords[0])
+
+    _auto_clear_timer = None
+    if parsed.copy and passwords and parsed.auto_clear_clipboard:
+        _auto_clear_timer = schedule_auto_clear_clipboard(passwords[0], delay_seconds=parsed.auto_clear_seconds)
 
     if parsed.json:
         results = []
@@ -220,6 +237,9 @@ def run_cli(args: Optional[List[str]] = None) -> int:
             rep = check_password_strength(pwd)
             copy_tag = " (Copied to clipboard)" if parsed.copy and len(passwords) == 1 else ""
             print(f"{pwd:<32} [Score: {rep.score}/100 - {rep.level} - {rep.entropy_bits:.1f} bits]{copy_tag}")
+        if _auto_clear_timer is not None:
+            print(f"Clipboard will be cleared in {parsed.auto_clear_seconds} second(s)...")
+            _auto_clear_timer.join()
 
     if parsed.vault_add and passwords:
         master = getpass.getpass("Vault master password: ")

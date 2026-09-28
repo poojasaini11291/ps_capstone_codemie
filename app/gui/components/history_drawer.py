@@ -1,8 +1,8 @@
 import time
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
-from typing import List, Optional
-from core.clipboard import copy_to_clipboard
+from typing import Callable, List, Optional, Tuple
+from core.clipboard import copy_to_clipboard, schedule_auto_clear_clipboard
 from core.strength_checker import check_password_strength, StrengthReport
 from core.generator import generate_batch, PasswordConfig
 
@@ -10,9 +10,16 @@ from core.generator import generate_batch, PasswordConfig
 class HistoryRow(ctk.CTkFrame):
     """A single history entry with copy button, strength badge, and mask toggle."""
 
-    def __init__(self, master, password: str, **kwargs):
+    def __init__(
+        self,
+        master,
+        password: str,
+        get_auto_clear_settings: Optional[Callable[[], Tuple[bool, int]]] = None,
+        **kwargs
+    ):
         super().__init__(master, corner_radius=8, fg_color=("gray95", "#161b22"), **kwargs)
         self.password = password
+        self.get_auto_clear_settings = get_auto_clear_settings
         self.is_masked = True
 
         self.grid_columnconfigure(1, weight=1)
@@ -93,6 +100,10 @@ class HistoryRow(ctk.CTkFrame):
 
     def copy(self):
         copy_to_clipboard(self.password, root_window=self.winfo_toplevel())
+        if self.get_auto_clear_settings:
+            enabled, seconds = self.get_auto_clear_settings()
+            if enabled and seconds > 0:
+                schedule_auto_clear_clipboard(self.password, delay_seconds=seconds)
         self.btn_copy.configure(text="✓ Copied!", fg_color=("#059669", "#238636"))
         self.after(1800, lambda: self.btn_copy.configure(text="📋 Copy", fg_color=("#2563eb", "#1f6feb")))
 
@@ -100,9 +111,16 @@ class HistoryRow(ctk.CTkFrame):
 class HistoryPanel(ctk.CTkFrame):
     """Session history viewer and batch password generation panel."""
 
-    def __init__(self, master, get_current_config_fn, **kwargs):
+    def __init__(
+        self,
+        master,
+        get_current_config_fn,
+        get_auto_clear_settings: Optional[Callable[[], Tuple[bool, int]]] = None,
+        **kwargs
+    ):
         super().__init__(master, corner_radius=14, fg_color=("gray90", "#161b22"), **kwargs)
         self.get_current_config_fn = get_current_config_fn
+        self.get_auto_clear_settings = get_auto_clear_settings
         self.history_items: List[str] = []
 
         self.grid_rowconfigure(1, weight=1)
@@ -189,7 +207,7 @@ class HistoryPanel(ctk.CTkFrame):
             widget.destroy()
 
         for idx, pwd in enumerate(self.history_items):
-            row = HistoryRow(self.scroll_list, pwd)
+            row = HistoryRow(self.scroll_list, pwd, get_auto_clear_settings=self.get_auto_clear_settings)
             row.pack(fill="x", padx=2, pady=3)
 
     def open_batch_dialog(self):

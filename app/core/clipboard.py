@@ -2,6 +2,8 @@ import threading
 import tkinter as tk
 from typing import Optional, Callable
 
+_auto_clear_timer: Optional[threading.Timer] = None
+
 
 def copy_to_clipboard(text: str, root_window: Optional[tk.Tk] = None) -> bool:
     """
@@ -42,13 +44,20 @@ def schedule_auto_clear_clipboard(
     delay_seconds: int = 30,
     callback: Optional[Callable[[], None]] = None,
     root_window: Optional[tk.Tk] = None
-):
+) -> threading.Timer:
     """
     Clears the clipboard after delay_seconds if it still contains the copied text.
+    Cancels any previously scheduled clear before scheduling a new one, preventing
+    runaway timers on subsequent copies.
     """
-    def _worker():
-        import time
-        time.sleep(delay_seconds)
+    global _auto_clear_timer
+    if _auto_clear_timer is not None:
+        _auto_clear_timer.cancel()
+        _auto_clear_timer = None
+
+    def _clear():
+        global _auto_clear_timer
+        _auto_clear_timer = None
         try:
             import pyperclip
             current = pyperclip.paste()
@@ -59,6 +68,7 @@ def schedule_auto_clear_clipboard(
         except Exception:
             pass
 
-    thread = threading.Thread(target=_worker, daemon=True)
-    thread.start()
-
+    _auto_clear_timer = threading.Timer(delay_seconds, _clear)
+    _auto_clear_timer.daemon = True
+    _auto_clear_timer.start()
+    return _auto_clear_timer

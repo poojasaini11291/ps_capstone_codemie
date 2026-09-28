@@ -32,6 +32,10 @@ class KeyCraftApp(ctk.CTk):
         self.geometry("1020x720")
         self.minsize(920, 640)
 
+        # Auto-clear clipboard settings (default OFF)
+        self._auto_clear_enabled = ctk.BooleanVar(value=False)
+        self._auto_clear_seconds = ctk.StringVar(value="30")
+
         # Build UI layout
         self._build_ui()
 
@@ -116,7 +120,7 @@ class KeyCraftApp(ctk.CTk):
     # Tab 1: Password Generator
     # -----------------------------------------------------------------
     def _build_generator_tab(self):
-        self.tab_gen.grid_rowconfigure(1, weight=1)
+        self.tab_gen.grid_rowconfigure(2, weight=1)
         self.tab_gen.grid_columnconfigure(0, weight=5)  # Left options
         self.tab_gen.grid_columnconfigure(1, weight=5)  # Right strength meter
 
@@ -124,23 +128,73 @@ class KeyCraftApp(ctk.CTk):
         self.display = PasswordDisplay(
             self.tab_gen,
             on_regenerate=self.generate_current,
-            on_copied=self._on_password_copied
+            on_copied=self._on_password_copied,
+            get_auto_clear_settings=self._get_auto_clear_settings
         )
-        self.display.grid(row=0, column=0, columnspan=2, sticky="ew", padx=4, pady=(0, 10))
+        self.display.grid(row=0, column=0, columnspan=2, sticky="ew", padx=4, pady=(0, 6))
 
-        # 2. Left Options Panel
+        # 2. Auto-clear clipboard settings strip
+        self._build_auto_clear_strip(self.tab_gen)
+
+        # 3. Left Options Panel
         self.options_panel = OptionsPanel(
             self.tab_gen,
             on_changed=self.generate_current
         )
-        self.options_panel.grid(row=1, column=0, sticky="nsew", padx=(4, 6), pady=0)
+        self.options_panel.grid(row=2, column=0, sticky="nsew", padx=(4, 6), pady=0)
 
-        # 3. Right Live Strength Meter
+        # 4. Right Live Strength Meter
         self.strength_meter = StrengthMeter(
             self.tab_gen,
             title="Live Generated Strength"
         )
-        self.strength_meter.grid(row=1, column=1, sticky="nsew", padx=(6, 4), pady=0)
+        self.strength_meter.grid(row=2, column=1, sticky="nsew", padx=(6, 4), pady=0)
+
+    def _build_auto_clear_strip(self, parent):
+        """Compact row for auto-clear clipboard toggle and timeout setting."""
+        strip = ctk.CTkFrame(parent, fg_color=("gray90", "#161b22"), corner_radius=8)
+        strip.grid(row=1, column=0, columnspan=2, sticky="ew", padx=4, pady=(0, 6))
+
+        self._ac_switch = ctk.CTkSwitch(
+            strip,
+            text="Auto-clear clipboard",
+            variable=self._auto_clear_enabled,
+            font=ctk.CTkFont(size=12),
+            command=self._on_auto_clear_toggled
+        )
+        self._ac_switch.pack(side="left", padx=(12, 8), pady=8)
+
+        ctk.CTkLabel(strip, text="after", font=ctk.CTkFont(size=12)).pack(side="left", padx=(0, 4))
+
+        self._ac_seconds_entry = ctk.CTkEntry(
+            strip,
+            textvariable=self._auto_clear_seconds,
+            width=56,
+            font=ctk.CTkFont(size=12),
+            state="disabled"
+        )
+        self._ac_seconds_entry.pack(side="left", padx=(0, 4))
+
+        ctk.CTkLabel(strip, text="seconds", font=ctk.CTkFont(size=12)).pack(side="left")
+
+    def _on_auto_clear_toggled(self):
+        if self._auto_clear_enabled.get():
+            self._ac_seconds_entry.configure(state="normal")
+        else:
+            self._ac_seconds_entry.configure(state="disabled")
+
+    def _get_auto_clear_settings(self):
+        """Return (enabled: bool, seconds: int) for the current auto-clear configuration."""
+        enabled = self._auto_clear_enabled.get()
+        try:
+            seconds = int(self._auto_clear_seconds.get())
+            if seconds < 1:
+                seconds = 1
+                self._auto_clear_seconds.set("1")
+        except ValueError:
+            seconds = 30
+            self._auto_clear_seconds.set("30")
+        return enabled, seconds
 
     # -----------------------------------------------------------------
     # Tab 2: Dedicated Strength Analyzer
@@ -222,7 +276,8 @@ class KeyCraftApp(ctk.CTk):
 
         self.history_panel = HistoryPanel(
             self.tab_history,
-            get_current_config_fn=self.options_panel.get_password_config
+            get_current_config_fn=self.options_panel.get_password_config,
+            get_auto_clear_settings=self._get_auto_clear_settings
         )
         self.history_panel.grid(row=0, column=0, sticky="nsew", padx=4, pady=0)
 
