@@ -9,7 +9,7 @@ from core.generator import (
     generate_pin
 )
 from core.strength_checker import check_password_strength
-from core.clipboard import copy_to_clipboard
+from core.clipboard import copy_to_clipboard, CLIPBOARD_CLEAR_DEFAULT_SECONDS
 from gui.components.password_display import PasswordDisplay
 from gui.components.strength_meter import StrengthMeter
 from gui.components.options_panel import OptionsPanel
@@ -124,23 +124,69 @@ class KeyCraftApp(ctk.CTk):
         self.display = PasswordDisplay(
             self.tab_gen,
             on_regenerate=self.generate_current,
-            on_copied=self._on_password_copied
+            on_copied=self._on_password_copied,
+            clipboard_clear_enabled=True,
+            clipboard_clear_seconds=CLIPBOARD_CLEAR_DEFAULT_SECONDS,
         )
-        self.display.grid(row=0, column=0, columnspan=2, sticky="ew", padx=4, pady=(0, 10))
+        self.display.grid(row=0, column=0, columnspan=2, sticky="ew", padx=4, pady=(0, 6))
 
-        # 2. Left Options Panel
+        # 2. Clipboard Auto-Clear Settings Bar
+        self._build_clipboard_settings_bar(self.tab_gen)
+
+        # 3. Left Options Panel
         self.options_panel = OptionsPanel(
             self.tab_gen,
             on_changed=self.generate_current
         )
-        self.options_panel.grid(row=1, column=0, sticky="nsew", padx=(4, 6), pady=0)
+        self.options_panel.grid(row=2, column=0, sticky="nsew", padx=(4, 6), pady=0)
 
-        # 3. Right Live Strength Meter
+        # 4. Right Live Strength Meter
         self.strength_meter = StrengthMeter(
             self.tab_gen,
             title="Live Generated Strength"
         )
-        self.strength_meter.grid(row=1, column=1, sticky="nsew", padx=(6, 4), pady=0)
+        self.strength_meter.grid(row=2, column=1, sticky="nsew", padx=(6, 4), pady=0)
+
+    def _build_clipboard_settings_bar(self, parent):
+        bar = ctk.CTkFrame(parent, corner_radius=8, fg_color=("gray85", "#21262d"))
+        bar.grid(row=1, column=0, columnspan=2, sticky="ew", padx=4, pady=(0, 8))
+
+        ctk.CTkLabel(
+            bar,
+            text="Clipboard Auto-Clear:",
+            font=ctk.CTkFont(size=12, weight="bold"),
+        ).pack(side="left", padx=(12, 8), pady=6)
+
+        self.clipboard_clear_switch = ctk.CTkSwitch(
+            bar,
+            text="Enabled",
+            font=ctk.CTkFont(size=12),
+            command=self._on_clipboard_settings_changed,
+        )
+        self.clipboard_clear_switch.select()
+        self.clipboard_clear_switch.pack(side="left", padx=8, pady=6)
+
+        ctk.CTkLabel(
+            bar,
+            text="Clear after",
+            font=ctk.CTkFont(size=12),
+        ).pack(side="left", padx=(16, 4), pady=6)
+
+        self.clipboard_seconds_entry = ctk.CTkEntry(
+            bar,
+            width=56,
+            font=ctk.CTkFont(size=12),
+        )
+        self.clipboard_seconds_entry.insert(0, str(CLIPBOARD_CLEAR_DEFAULT_SECONDS))
+        self.clipboard_seconds_entry.bind("<FocusOut>", lambda e: self._on_clipboard_settings_changed())
+        self.clipboard_seconds_entry.bind("<Return>", lambda e: self._on_clipboard_settings_changed())
+        self.clipboard_seconds_entry.pack(side="left", padx=4, pady=6)
+
+        ctk.CTkLabel(
+            bar,
+            text="seconds",
+            font=ctk.CTkFont(size=12),
+        ).pack(side="left", padx=(0, 12), pady=6)
 
     # -----------------------------------------------------------------
     # Tab 2: Dedicated Strength Analyzer
@@ -265,6 +311,17 @@ class KeyCraftApp(ctk.CTk):
 
         # Add to session history
         self.history_panel.add_password(new_password)
+
+    def _on_clipboard_settings_changed(self):
+        enabled = bool(self.clipboard_clear_switch.get())
+        self.display.clipboard_clear_enabled = enabled
+        self.clipboard_clear_switch.configure(text="Enabled" if enabled else "Disabled")
+        try:
+            seconds = int(self.clipboard_seconds_entry.get())
+            if seconds > 0:
+                self.display.clipboard_clear_seconds = seconds
+        except ValueError:
+            pass
 
     def _on_password_copied(self, password: str):
         pass

@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from typing import Callable, Optional
-from core.clipboard import copy_to_clipboard
+from core.clipboard import copy_to_clipboard, schedule_auto_clear_clipboard, CLIPBOARD_CLEAR_DEFAULT_SECONDS
 
 
 class PasswordDisplay(ctk.CTkFrame):
@@ -11,6 +11,8 @@ class PasswordDisplay(ctk.CTkFrame):
         master,
         on_regenerate: Optional[Callable[[], None]] = None,
         on_copied: Optional[Callable[[str], None]] = None,
+        clipboard_clear_enabled: bool = True,
+        clipboard_clear_seconds: int = CLIPBOARD_CLEAR_DEFAULT_SECONDS,
         **kwargs
     ):
         super().__init__(master, corner_radius=14, fg_color=("gray90", "#161b22"), **kwargs)
@@ -18,6 +20,8 @@ class PasswordDisplay(ctk.CTkFrame):
         self.on_copied = on_copied
         self.current_password = ""
         self.is_masked = False
+        self.clipboard_clear_enabled = clipboard_clear_enabled
+        self.clipboard_clear_seconds = clipboard_clear_seconds
 
         self.grid_columnconfigure(0, weight=1)
 
@@ -120,6 +124,13 @@ class PasswordDisplay(ctk.CTkFrame):
             if self.toast_job:
                 self.after_cancel(self.toast_job)
             self.toast_job = self.after(2200, self._reset_copy_button)
+
+            if self.clipboard_clear_enabled:
+                schedule_auto_clear_clipboard(
+                    self.current_password,
+                    delay_seconds=self.clipboard_clear_seconds,
+                    root_window=self.winfo_toplevel(),
+                )
 
             if self.on_copied:
                 self.on_copied(self.current_password)

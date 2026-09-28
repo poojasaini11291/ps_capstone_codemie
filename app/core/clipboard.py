@@ -2,6 +2,8 @@ import threading
 import tkinter as tk
 from typing import Optional, Callable
 
+CLIPBOARD_CLEAR_DEFAULT_SECONDS = 30
+
 
 def copy_to_clipboard(text: str, root_window: Optional[tk.Tk] = None) -> bool:
     """
