@@ -124,7 +124,8 @@ class KeyCraftApp(ctk.CTk):
         self.display = PasswordDisplay(
             self.tab_gen,
             on_regenerate=self.generate_current,
-            on_copied=self._on_password_copied
+            on_copied=self._on_password_copied,
+            get_clipboard_settings=self._get_clipboard_settings
         )
         self.display.grid(row=0, column=0, columnspan=2, sticky="ew", padx=4, pady=(0, 10))
 
@@ -265,6 +266,12 @@ class KeyCraftApp(ctk.CTk):
 
         # Add to session history
         self.history_panel.add_password(new_password)
+
+    def _get_clipboard_settings(self) -> tuple:
+        return (
+            self.options_panel.get_auto_clear_enabled(),
+            self.options_panel.get_auto_clear_delay(),
+        )
 
     def _on_password_copied(self, password: str):
         pass

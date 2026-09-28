@@ -37,6 +37,11 @@ class OptionsPanel(ctk.CTkFrame):
         # -------------------------------------------------------------
         self._build_pin_tab()
 
+        # -------------------------------------------------------------
+        # 4. Clipboard Auto-Clear Settings
+        # -------------------------------------------------------------
+        self._build_clipboard_section()
+
     def _build_random_tab(self):
         self.tab_random.grid_columnconfigure(0, weight=1)
 
@@ -279,6 +284,42 @@ class OptionsPanel(ctk.CTkFrame):
             )
             btn.pack(side="left", padx=3)
 
+    def _build_clipboard_section(self):
+        section = ctk.CTkFrame(self, fg_color=("gray85", "#1c2128"), corner_radius=8)
+        section.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 10))
+        section.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            section,
+            text="Clipboard Security",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=("gray40", "#8b949e")
+        ).grid(row=0, column=0, columnspan=3, sticky="w", padx=10, pady=(8, 4))
+
+        self.var_auto_clear = ctk.BooleanVar(value=True)
+        self.chk_auto_clear = ctk.CTkCheckBox(
+            section,
+            text="Auto-clear clipboard after copy",
+            variable=self.var_auto_clear,
+            font=ctk.CTkFont(size=12)
+        )
+        self.chk_auto_clear.grid(row=1, column=0, sticky="w", padx=10, pady=(0, 8))
+
+        ctk.CTkLabel(
+            section,
+            text="Delay (s):",
+            font=ctk.CTkFont(size=12)
+        ).grid(row=1, column=1, sticky="e", padx=(10, 4), pady=(0, 8))
+
+        self.delay_entry = ctk.CTkEntry(
+            section,
+            width=56,
+            font=ctk.CTkFont(size=12),
+            justify="center"
+        )
+        self.delay_entry.insert(0, "30")
+        self.delay_entry.grid(row=1, column=2, sticky="w", padx=(0, 10), pady=(0, 8))
+
     # -----------------------------------------------------------------
     # Event Handlers
     # -----------------------------------------------------------------
@@ -348,4 +389,14 @@ class OptionsPanel(ctk.CTkFrame):
         return PinConfig(
             length=int(round(self.pin_slider.get()))
         )
+
+    def get_auto_clear_enabled(self) -> bool:
+        return self.var_auto_clear.get()
+
+    def get_auto_clear_delay(self) -> int:
+        try:
+            val = int(self.delay_entry.get())
+            return val if val > 0 else 30
+        except (ValueError, TypeError):
+            return 30
 

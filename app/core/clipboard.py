@@ -2,6 +2,8 @@ import threading
 import tkinter as tk
 from typing import Optional, Callable
 
+_active_timer: Optional[threading.Timer] = None
+
 
 def copy_to_clipboard(text: str, root_window: Optional[tk.Tk] = None) -> bool:
     """
@@ -41,16 +43,24 @@ def schedule_auto_clear_clipboard(
     copied_text: str,
     delay_seconds: int = 30,
     callback: Optional[Callable[[], None]] = None,
-    root_window: Optional[tk.Tk] = None
-):
+) -> None:
     """
-    Clears the clipboard after delay_seconds if it still contains the copied text.
+    Clears the clipboard after delay_seconds if it still contains copied_text.
+    Cancels any previously scheduled auto-clear so repeated copies reset the timer.
+    Only clears if the clipboard still matches the copied value at fire time.
     """
-    def _worker():
-        import time
-        time.sleep(delay_seconds)
+    global _active_timer
+
+    if _active_timer is not None:
+        _active_timer.cancel()
+        _active_timer = None
+
+    def _clear() -> None:
+        global _active_timer
+        _active_timer = None
         try:
             import pyperclip
+            # Only clear if clipboard still holds the password we copied
             current = pyperclip.paste()
             if current == copied_text:
                 pyperclip.copy("")
@@ -59,6 +69,15 @@ def schedule_auto_clear_clipboard(
         except Exception:
             pass
 
-    thread = threading.Thread(target=_worker, daemon=True)
-    thread.start()
+    timer = threading.Timer(float(delay_seconds), _clear)
+    timer.daemon = True
+    timer.start()
+    _active_timer = timer
 
+
+def cancel_auto_clear_clipboard() -> None:
+    """Cancel any pending auto-clear timer."""
+    global _active_timer
+    if _active_timer is not None:
+        _active_timer.cancel()
+        _active_timer = None
