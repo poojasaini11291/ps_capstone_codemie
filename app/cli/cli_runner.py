@@ -13,7 +13,7 @@ from core.generator import (
     generate_batch
 )
 from core.strength_checker import check_password_strength
-from core.clipboard import copy_to_clipboard
+from core.clipboard import copy_to_clipboard, schedule_auto_clear_clipboard
 from core.vault import (
     VaultError,
     init_vault,
@@ -201,6 +201,7 @@ def run_cli(args: Optional[List[str]] = None) -> int:
     # Output results
     if parsed.copy and passwords:
         copy_to_clipboard(passwords[0])
+        schedule_auto_clear_clipboard(passwords[0])
 
     if parsed.json:
         results = []

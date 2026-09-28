@@ -2,6 +2,11 @@ import threading
 import tkinter as tk
 from typing import Optional, Callable
 
+CLIPBOARD_AUTO_CLEAR_DELAY = 30  # seconds
+
+# Module-level cancel event; replaced on each new copy to reset the timer.
+_cancel_event: Optional[threading.Event] = None
+
 
 def copy_to_clipboard(text: str, root_window: Optional[tk.Tk] = None) -> bool:
     """
@@ -39,16 +44,27 @@ def copy_to_clipboard(text: str, root_window: Optional[tk.Tk] = None) -> bool:
 
 def schedule_auto_clear_clipboard(
     copied_text: str,
-    delay_seconds: int = 30,
+    delay_seconds: int = CLIPBOARD_AUTO_CLEAR_DELAY,
     callback: Optional[Callable[[], None]] = None,
     root_window: Optional[tk.Tk] = None
 ):
     """
     Clears the clipboard after delay_seconds if it still contains the copied text.
+    Cancels any previously scheduled clear so only the latest copy triggers a clear.
     """
+    global _cancel_event
+
+    # Signal the previous pending clear to cancel (AC3: timer reset).
+    if _cancel_event is not None:
+        _cancel_event.set()
+
+    cancel = threading.Event()
+    _cancel_event = cancel
+
     def _worker():
-        import time
-        time.sleep(delay_seconds)
+        # Wait for the delay; returns True early if cancelled by a newer copy.
+        if cancel.wait(timeout=delay_seconds):
+            return
         try:
             import pyperclip
             current = pyperclip.paste()

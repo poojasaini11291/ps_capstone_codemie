@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from typing import Callable, Optional
-from core.clipboard import copy_to_clipboard
+from core.clipboard import copy_to_clipboard, schedule_auto_clear_clipboard
 
 
 class PasswordDisplay(ctk.CTkFrame):
@@ -120,6 +120,11 @@ class PasswordDisplay(ctk.CTkFrame):
             if self.toast_job:
                 self.after_cancel(self.toast_job)
             self.toast_job = self.after(2200, self._reset_copy_button)
+
+            schedule_auto_clear_clipboard(
+                self.current_password,
+                root_window=self.winfo_toplevel(),
+            )
 
             if self.on_copied:
                 self.on_copied(self.current_password)
