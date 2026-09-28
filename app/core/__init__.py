@@ -15,7 +15,8 @@ from .strength_checker import (
 )
 from .clipboard import (
     copy_to_clipboard,
-    schedule_auto_clear_clipboard
+    schedule_auto_clear_clipboard,
+    CLIPBOARD_CLEAR_TIMEOUT_SECS,
 )
 
 __all__ = [
@@ -32,5 +33,6 @@ __all__ = [
     "format_crack_time",
     "copy_to_clipboard",
     "schedule_auto_clear_clipboard",
+    "CLIPBOARD_CLEAR_TIMEOUT_SECS",
 ]
 

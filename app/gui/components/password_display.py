@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from typing import Callable, Optional
-from core.clipboard import copy_to_clipboard
+from core.clipboard import copy_to_clipboard, schedule_auto_clear_clipboard, CLIPBOARD_CLEAR_TIMEOUT_SECS
 
 
 class PasswordDisplay(ctk.CTkFrame):
@@ -114,15 +114,27 @@ class PasswordDisplay(ctk.CTkFrame):
         success = copy_to_clipboard(self.current_password, root_window=self.winfo_toplevel())
         if success:
             self.btn_copy.configure(
-                text="✓ Copied!",
+                text=f"✓ Copied! (clears in {CLIPBOARD_CLEAR_TIMEOUT_SECS}s)",
                 fg_color=("#047857", "#2ea043")
             )
             if self.toast_job:
                 self.after_cancel(self.toast_job)
             self.toast_job = self.after(2200, self._reset_copy_button)
 
+            schedule_auto_clear_clipboard(
+                self.current_password,
+                on_clear_failed=self._on_clear_failed,
+            )
+
             if self.on_copied:
                 self.on_copied(self.current_password)
+
+    def _on_clear_failed(self, exc: Exception):
+        """Called on the background thread; schedule UI update back on main thread."""
+        try:
+            self.after(0, lambda: print(f"Clipboard auto-clear unavailable: {exc}"))
+        except Exception:
+            pass
 
     def _reset_copy_button(self):
         self.btn_copy.configure(
