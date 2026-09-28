@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from typing import Callable, Optional
-from core.clipboard import copy_to_clipboard
+from core.clipboard import copy_to_clipboard, schedule_auto_clear_clipboard, CLIPBOARD_CLEAR_TIMEOUT_SECS
 
 
 class PasswordDisplay(ctk.CTkFrame):
@@ -85,6 +85,16 @@ class PasswordDisplay(ctk.CTkFrame):
         # Copied Toast Badge (reverts after 2.5s)
         self.toast_job = None
 
+        # Status label shown below action row (used for clear-unsupported warning)
+        self._status_label = ctk.CTkLabel(
+            self,
+            text="",
+            font=ctk.CTkFont(size=11),
+            text_color=("gray40", "#8b949e")
+        )
+        self._status_label.grid(row=2, column=0, sticky="ew", padx=14, pady=(0, 4))
+        self._status_job = None
+
     def set_password(self, password: str):
         self.current_password = password
         self._update_display_text()
@@ -114,15 +124,35 @@ class PasswordDisplay(ctk.CTkFrame):
         success = copy_to_clipboard(self.current_password, root_window=self.winfo_toplevel())
         if success:
             self.btn_copy.configure(
-                text="✓ Copied!",
+                text=f"✓ Copied! (clears in {CLIPBOARD_CLEAR_TIMEOUT_SECS}s)",
                 fg_color=("#047857", "#2ea043")
             )
             if self.toast_job:
                 self.after_cancel(self.toast_job)
             self.toast_job = self.after(2200, self._reset_copy_button)
 
+            schedule_auto_clear_clipboard(
+                self.current_password,
+                on_clear_failed=self._on_clear_failed
+            )
+
             if self.on_copied:
                 self.on_copied(self.current_password)
+
+    def _on_clear_failed(self, exc: Exception):
+        """Called on the background thread; schedule UI update back on main thread."""
+        try:
+            self.after(0, lambda: self._show_status(
+                "Note: clipboard auto-clear is not supported in this environment."
+            ))
+        except Exception:
+            pass
+
+    def _show_status(self, message: str):
+        self._status_label.configure(text=message)
+        if self._status_job:
+            self.after_cancel(self._status_job)
+        self._status_job = self.after(5000, lambda: self._status_label.configure(text=""))
 
     def _reset_copy_button(self):
         self.btn_copy.configure(

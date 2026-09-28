@@ -2,6 +2,11 @@ import threading
 import tkinter as tk
 from typing import Optional, Callable
 
+# Default auto-clear timeout. Change this constant to adjust the global default.
+CLIPBOARD_CLEAR_TIMEOUT_SECS = 30
+
+_auto_clear_timer: Optional[threading.Timer] = None
+
 
 def copy_to_clipboard(text: str, root_window: Optional[tk.Tk] = None) -> bool:
     """
@@ -39,16 +44,30 @@ def copy_to_clipboard(text: str, root_window: Optional[tk.Tk] = None) -> bool:
 
 def schedule_auto_clear_clipboard(
     copied_text: str,
-    delay_seconds: int = 30,
+    delay_seconds: int = CLIPBOARD_CLEAR_TIMEOUT_SECS,
     callback: Optional[Callable[[], None]] = None,
+    on_clear_failed: Optional[Callable[[Exception], None]] = None,
     root_window: Optional[tk.Tk] = None
-):
+) -> threading.Timer:
     """
-    Clears the clipboard after delay_seconds if it still contains the copied text.
+    Clears the clipboard after delay_seconds if it still contains copied_text.
+
+    Cancels any previously scheduled clear before starting a new timer, so
+    repeated copies never accumulate runaway timers. Returns the new Timer so
+    callers can join() it when needed (e.g. CLI blocking wait).
+
+    on_clear_failed is called with the caught exception when the clipboard clear
+    is attempted but fails (e.g. unsupported environment), allowing the caller
+    to surface a notification without crashing.
     """
-    def _worker():
-        import time
-        time.sleep(delay_seconds)
+    global _auto_clear_timer
+    if _auto_clear_timer is not None:
+        _auto_clear_timer.cancel()
+        _auto_clear_timer = None
+
+    def _clear():
+        global _auto_clear_timer
+        _auto_clear_timer = None
         try:
             import pyperclip
             current = pyperclip.paste()
@@ -56,9 +75,11 @@ def schedule_auto_clear_clipboard(
                 pyperclip.copy("")
                 if callback:
                     callback()
-        except Exception:
-            pass
+        except Exception as exc:
+            if on_clear_failed:
+                on_clear_failed(exc)
 
-    thread = threading.Thread(target=_worker, daemon=True)
-    thread.start()
-
+    _auto_clear_timer = threading.Timer(delay_seconds, _clear)
+    _auto_clear_timer.daemon = True
+    _auto_clear_timer.start()
+    return _auto_clear_timer

@@ -2,7 +2,7 @@ import time
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 from typing import List, Optional
-from core.clipboard import copy_to_clipboard
+from core.clipboard import copy_to_clipboard, schedule_auto_clear_clipboard, CLIPBOARD_CLEAR_TIMEOUT_SECS
 from core.strength_checker import check_password_strength, StrengthReport
 from core.generator import generate_batch, PasswordConfig
 
@@ -92,8 +92,13 @@ class HistoryRow(ctk.CTkFrame):
         self.pass_entry.configure(state="readonly")
 
     def copy(self):
-        copy_to_clipboard(self.password, root_window=self.winfo_toplevel())
-        self.btn_copy.configure(text="✓ Copied!", fg_color=("#059669", "#238636"))
+        success = copy_to_clipboard(self.password, root_window=self.winfo_toplevel())
+        if success:
+            schedule_auto_clear_clipboard(self.password)
+        self.btn_copy.configure(
+            text=f"✓ Copied! ({CLIPBOARD_CLEAR_TIMEOUT_SECS}s)",
+            fg_color=("#059669", "#238636")
+        )
         self.after(1800, lambda: self.btn_copy.configure(text="📋 Copy", fg_color=("#2563eb", "#1f6feb")))
 
 
