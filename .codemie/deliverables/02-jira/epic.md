@@ -2,6 +2,8 @@
 
 **Project:** KeyCraft (KC) · **Type:** Epic · **Persona:** Requirement Assistant (BA)
 **Status:** Done · **Priority:** High
+**Jira Story:** [KAN-29](https://poojasaini11291.atlassian.net/browse/KAN-29) (ENH-02)
+**Feature Branch:** feature/KAN-29
 
 ## Summary
 Add a master-password-protected, locally-encrypted vault so users can save, label, retrieve,
